@@ -38,6 +38,7 @@ def part02(matlab_dir = r"C:\Program Files\MATLAB\R2020a\bin", ):
   None
 
   """
+  print("--Running part 02--")
   # Getting File Paths  -----------------------------------------------------------------
   # OS Paths
   cwd = Path(os.getcwd())

@@ -25,7 +25,7 @@ mask_dir = r'F:\+DATA\ABSFULL\atlases\Pauli_MNI152-Nonlin-Asym-2009c\bilateral_r
 atlas_dir = "NOP"
 matlab_dir = r"C:\Program Files\MATLAB\R2020a\bin"
 comm_mask_prefix = "HTcomm_rerun"
-timecourse_root = r"F:\+DATA\ABSFULL\timecourse"
+timecourse_root = r"F:\+DATA\ABSFULL\timecourse_mk3"
 
 def main():
   # EXTRACTION OF MASK VOXELS AND CROSS CORRELATION
@@ -45,8 +45,13 @@ def main():
     part04(comm_mask_prefix)
 
   # CORRELATE AND AGGREGATE TIMECOURSE DATA
+  print((not exists(os.path.join('../results/', 'P05_fishercrosssubtotalTCcorr.npy'))))
   if DEFAULTRUN and ((not exists(os.path.join('../results/', 'P05_fishercrosssubtotalTCcorr.npy'))) or run_full_override or DEFAULT_NO_OVERRIDE):
     part05(timecourse_root)
+
+  # # CORRELATE AND AGGREGATE TIMECOURSE DATA
+  # if DEFAULTRUN and ((not exists(os.path.join('../results/', 'P05_fishercrosssubtotalTCcorr.npy'))) or run_full_override or DEFAULT_NO_OVERRIDE):
+  #   part05(timecourse_root)
 
   print("--- ANALYSIS FINISH ---")
 

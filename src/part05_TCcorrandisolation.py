@@ -29,7 +29,7 @@ from sklearn.linear_model import LinearRegression
 import sys
 from pathlib import Path
 
-def part05(timecourse_root = r"F:\+DATA\ABSFULL\timecourse"):
+def part05(timecourse_root = r"F:\+DATA\ABSFULL\timecourse_mk3"):
   """
   Extracts signal for a given analysis mask and calcuates a total correlation tensor for a set of runs. Saves the result to the results directory.
 
@@ -54,6 +54,7 @@ def part05(timecourse_root = r"F:\+DATA\ABSFULL\timecourse"):
   Default arguments are currently set for HT analysis on author's personal computer.
 
   """
+  print("--Running part 05--")
   # Getting File Paths  -----------------------------------------------------------------
   # OS Paths
   cwd = Path(os.getcwd())
@@ -62,23 +63,27 @@ def part05(timecourse_root = r"F:\+DATA\ABSFULL\timecourse"):
 
   os.chdir(timecourse_root)
   tcpaths = [file for file in glob.glob("**/*res4d.csv", recursive=True)]
-  print(tcpaths)
+  # print(tcpaths)
 
   header = ["subj", "tag", "roi"] + [f"{i}_mean" for i in range(0,256)]
 
   # Extraction and Cleaning
   # Basic extraction fns for tc data --------------------
-  def read_tc(p):
-    if p[30:35] == 'HTABS': # fixing malformed HTcomm TC data
+  def read_tc(p, disppaths=False):
+    if disppaths: 
+      print(p)
+    if p[30:35] == 'HTABS':
       return pd.read_csv(p, usecols=header).drop(["subj"], axis=1)
+    elif p[25:32] == 'columns' or p[25:34] == "rosmedcau":
+      return pd.read_csv(p).drop(["subj"], axis=1).rename(columns=lambda x: x + "_mean" if x != "roi" else x)
     else:
       return pd.read_csv(p).drop(["subj","cat_N","median_x","median_y","median_z","roi_sd"], axis=1).sort_values("roi")
 
-  def getRunTable(sub, runnum, drop_metacols=True, residuals=False):
+  def getRunTable(sub, runnum, drop_metacols=True, residuals=False, disppaths=False):
     subpaths = [file for file in glob.glob(f"rest0{runnum}*/**/*{sub}*", recursive=True)]
     if len(subpaths) < 2:
       return None
-    csvs = [read_tc(p) for p in subpaths]
+    csvs = [read_tc(p, disppaths) for p in subpaths]
     fulltable = pd.concat(csvs,ignore_index=True)
     if residuals:
       ftpd = fulltable.drop(["tag","roi"], axis=1).dropna(axis='columns')
@@ -100,6 +105,7 @@ def part05(timecourse_root = r"F:\+DATA\ABSFULL\timecourse"):
     
   def getMetaCols(sub):
     listdf = [getRunTable(sub, 1, False),getRunTable(sub, 2, False),getRunTable(sub, 3, False)]
+    print(".",end="")
     fulltab = pd.concat([df[["tag","roi"]] for df in listdf if df is not None], axis=1)
     if len(fulltab["roi"].shape) == 2:
       valid_check = fulltab["roi"].isin(fulltab["roi"].iloc[:, 1]).all(1).all()
@@ -108,8 +114,9 @@ def part05(timecourse_root = r"F:\+DATA\ABSFULL\timecourse"):
          raise ValueError(f"{sub}: Cols must have the same order")
     return fulltab.iloc[:, 0:2]
 
-  subjset = set([p[-17:-10] for p in tcpaths])
+  subjset = set([p[-17:-10] for p in tcpaths]) # Where in the path the subject is stated
   allruns = [(sub, pd.concat([getMetaCols(sub), getRunTable(sub, 1), getRunTable(sub, 2), getRunTable(sub, 3)], axis=1, join="inner")) for sub in subjset]
+  print("Loaded All Runs")
   ROILIST = allruns[0][1]['roi']
   ROINP = ROILIST.to_numpy().astype('U')
   with open(os.path.join(WORKSPACEROOT, 'P05_ROIorder.npy'), "wb") as f:
@@ -122,8 +129,8 @@ def part05(timecourse_root = r"F:\+DATA\ABSFULL\timecourse"):
   # Checking if any correlation tables are malformed
   for corr in allcorr:
    if len(corr[1]) == 0:
-      display(corr[0])
-      display(corr[2])
+      print(corr[0])
+      print(corr[2])
   corrnp = np.stack([corr.to_numpy() for corr in corrvalid])
   fd = lambda mat: np.fill_diagonal(mat,0)
   corrnpcopy = corrnp.copy()

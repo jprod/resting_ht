@@ -45,6 +45,7 @@ def part01(a_mask = "Hypothalamus.nii.gz", mdld_dataroot = 'F:/+DATA/TEAMVIEWERI
   Default arguments are currently set for HT analysis on author's personal computer.
 
   """
+  print("--Running part 01--")
   # Set the mask 
   ANALYSIS_MASK = a_mask # Mask file name
 

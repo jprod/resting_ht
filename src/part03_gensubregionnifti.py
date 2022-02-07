@@ -39,7 +39,7 @@ def part03(a_mask = "Hypothalamus.nii.gz", comm_mask_prefix = "HTcomm_rerun"):
   Default arguments are currently set for HT analysis on author's personal computer.
 
   """
-
+  print("--Running part 03--")
   # Getting File Paths  -----------------------------------------------------------------
   # OS Paths
   cwd = Path(os.getcwd())
