@@ -99,7 +99,7 @@ def part01(a_mask = "Hypothalamus.nii.gz", mdld_dataroot = 'F:/+DATA/TEAMVIEWERI
     kneedle = KneeLocator(x=range(voxvar.shape[0]),y=np.sort(voxvar), S=1.0, curve="convex", direction="increasing")
     elbowpoint = round(kneedle.elbow, 3)
     elbowthresh = poly(elbowpoint)
-    voxels2 = htvoxels.copy()
+    voxels2 = voxels.copy()
     voxels2[voxvar > elbowthresh] = np.repeat(np.nan, voxels.shape[1])
     return voxels2
 
