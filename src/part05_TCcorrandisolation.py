@@ -115,8 +115,9 @@ def part05(timecourse_root = r"F:\+DATA\ABSFULL\timecourse_mk3"):
     return fulltab.iloc[:, 0:2]
 
   subjset = set([p[-17:-10] for p in tcpaths]) # Where in the path the subject is stated
+  print("P05: Loading All Runs...")
   allruns = [(sub, pd.concat([getMetaCols(sub), getRunTable(sub, 1), getRunTable(sub, 2), getRunTable(sub, 3)], axis=1, join="inner")) for sub in subjset]
-  print("Loaded All Runs")
+  print("P05: Loaded All Runs")
   ROILIST = allruns[0][1]['roi']
   ROINP = ROILIST.to_numpy().astype('U')
   with open(os.path.join(WORKSPACEROOT, 'P05_ROIorder.npy'), "wb") as f:
@@ -140,8 +141,8 @@ def part05(timecourse_root = r"F:\+DATA\ABSFULL\timecourse_mk3"):
       np.save(f, fishercorrnp)
 
   # Mean
-  meancorr = np.mean(fishercorrnp, axis=0)
-  with open(os.path.join(WORKSPACEROOT, 'P05_fishercrosssubtotalTCcorr.npy'), 'wb') as f:
+  meancorr = np.nanmean(fishercorrnp, axis=0)
+  with open(os.path.join(WORKSPACEROOT, "P05_fishercrosssubtotalTCcorr.npy"), 'wb') as f:
     np.save(f, meancorr)
 
 

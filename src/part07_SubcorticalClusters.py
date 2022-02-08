@@ -29,7 +29,7 @@ from sklearn.linear_model import LinearRegression
 import sys
 from pathlib import Path
 
-def part06(TOTALMASKROOT = r"F:\+DATA\ABSFULL\TOTAL ATLAS"):
+def part07(TOTALMASKROOT = r"F:\+DATA\ABSFULL\TOTAL ATLAS"):
   """
   Extracts signal for a given analysis mask and calcuates a total correlation tensor for a set of runs. Saves the result to the results directory.
 
@@ -54,7 +54,7 @@ def part06(TOTALMASKROOT = r"F:\+DATA\ABSFULL\TOTAL ATLAS"):
   Default arguments are currently set for HT analysis on author's personal computer.
 
   """
-  print("--Running part 06--")
+  print("--Running part 07--")
   # Getting File Paths  -----------------------------------------------------------------
   # OS Paths
   cwd = Path(os.getcwd())
@@ -64,6 +64,8 @@ def part06(TOTALMASKROOT = r"F:\+DATA\ABSFULL\TOTAL ATLAS"):
 
   meancorr_in = np.load(os.path.join(WORKSPACEROOT, 'P05_fishercrosssubtotalTCcorr.npy'))
   print(f"meancorr_in shape: {meancorr_in.shape}")
+  corr_in = np.load(os.path.join(WORKSPACEROOT, 'P05_fisherTCcorr.npy'))
+  print(f"corr_in shape: {corr_in.shape}")
   ROIORDER = np.load(os.path.join(WORKSPACEROOT, 'P05_ROIorder.npy'))
   print(f"ROIORDER shape: {ROIORDER.shape}")
 
@@ -116,13 +118,18 @@ def part06(TOTALMASKROOT = r"F:\+DATA\ABSFULL\TOTAL ATLAS"):
   HTindicies_nocortex = np.where(np.isin(ROIORDER[subcortex], ["HTcomm_1", "HTcomm_2", "HTcomm_3", "HTcomm_4"]))[0]
   subcortex_noHT = subcortex.copy()
   subcortex_noHT[HTindicies] = False
-  fcorrisolated = fcorrnp[:, HTindicies, :]
-  fcorrisolated = fcorrisolated[:,:,subcortex_noHT]
-  fcorriso_moved = np.moveaxis(fcorrisolated, 0, -1)
 
-  meancorr = fcorrisolated
-  meancorr_moved = fcorriso_moved
+  corr = corr_in[:, HTindicies, :]
+  corr = corr[:,:,subcortex_noHT]
+  meancorr = meancorr_in[HTindicies,:]
+  meancorr = meancorr[:,subcortex_noHT]
+  ROIORDER2 = ROIORDER[subcortex_noHT]
 
+  corr_moved = np.moveaxis(corr, -1, 0)
+  meancorr_moved = np.moveaxis(meancorr, 0, -1)
+  print(f"corr_moved shape: {corr_moved.shape}")
+  print(f"corr shape: {corr.shape}")
+  print(f"ROIORDER2: {ROIORDER2}")
   # calhar_scores = [metrics.calinski_harabasz_score(meancorr_moved, KMeans(n_clusters=i, random_state=1).fit(meancorr_moved).labels_) for i in range(2,10)]\
   distortions = []
   K = range(1,40)
@@ -134,6 +141,7 @@ def part06(TOTALMASKROOT = r"F:\+DATA\ABSFULL\TOTAL ATLAS"):
   kneedle = KneeLocator(K, distortions, S=1.0, curve="convex", direction="decreasing")
   print(kneedle.knee)
   print(kneedle.elbow)
+    
 
   kmeans_model = KMeans(n_clusters=kneedle.knee, random_state=1).fit(meancorr_moved)
   print(kmeans_model.labels_)
@@ -145,33 +153,33 @@ def part06(TOTALMASKROOT = r"F:\+DATA\ABSFULL\TOTAL ATLAS"):
 
   def avg_cluster(clusterset_x_numroi):
     cluster_n = np.max(clusterset_x_numroi)+1
-    avgcluster = np.stack([np.nanmean(fcorriso_moved2[clusterset_x_numroi == i], axis=0) for i in range(cluster_n)])
+    avgcluster = np.stack([np.nanmean(corr_moved[clusterset_x_numroi == i], axis=0) for i in range(cluster_n)])
     return(avgcluster)
   corrcluster = avg_cluster(kmeans_model.labels_)
 
   from statsmodels.stats.anova import AnovaRM
-  def getdfanovacluster(clustxsubxht_matrix, savepath="out.csv"):
-    nsub = clustxsubxht_matrix.shape[1]
-    nclust = clustxsubxht_matrix.shape[0]
-    subxht_matrix = np.concatenate([subxhtmat for subxhtmat in clustxsubxht_matrix], axis=1)
+  def getdfanovacluster(clustxsubxnewroi_matrix, savepath="out.csv"):
+    nsub = clustxsubxnewroi_matrix.shape[1]
+    nclust = clustxsubxnewroi_matrix.shape[0]
+    subxnewroi_matrix = np.concatenate([subxnewroimat for subxnewroimat in clustxsubxnewroi_matrix], axis=1)
     subid = np.arange(nsub).reshape((-1,1))
-    full = np.concatenate([subid, subxht_matrix], axis=1)
+    full = np.concatenate([subid, subxnewroi_matrix], axis=1)
     print(full)
     print(full.shape)
-    long = np.concatenate([np.concatenate([full[:,[0,i]], np.full((nsub,1), (i-1)%4+1),
-                                           np.full((nsub,1), (i-1)//4+1)], axis=1) for i in range(1, full.shape[1])], axis=0)
+    long = np.concatenate([np.concatenate([full[:,[0,i]], np.full((nsub,1), (i-1)%nclust+1),
+                                           np.full((nsub,1), (i-1)//nclust+1)], axis=1) for i in range(1, full.shape[1])], axis=0)
     print(long)
     print(long.shape)
-    dflong = pd.DataFrame(long, columns=["pid", "rvalue", "ht_subregion", "cluster"])
-  #   dflong.to_csv(savepath)
-    dffull = pd.DataFrame(full, columns=["pid"]+[f"rvalue_clust{i//4 + 1}_ht{i%4 + 1}" for i in range(24)])
+    dflong = pd.DataFrame(long, columns=["pid", "rvalue", "subregion", "cluster"])
+  #   dflong.to_csv(savepath) 
+    dffull = pd.DataFrame(full, columns=["pid"]+[f"rvalue_clust{i//nclust + 1}_subreg{i%nclust + 1}" for i in range(1, full.shape[1])])
     dffull.to_csv(savepath, index=False)
-    aovrm = AnovaRM(dflong, depvar='rvalue', subject='pid', within=['ht_subregion', 'cluster'])
+    aovrm = AnovaRM(dflong, depvar='rvalue', subject='pid', within=['subregion', 'cluster'])
     res = aovrm.fit()
     print(res)
     return(np.stack([res.anova_table["F Value"].to_numpy(), res.anova_table["Pr > F"].to_numpy()], axis=0))
 
-  anovares2 = getdfanovacluster(corr2cluster, os.path.join(WORKSPACEROOT, "P07subcort_clustersWIDE.csv"))
+  anovares2 = getdfanovacluster(corrcluster, os.path.join(WORKSPACEROOT, "P07subcort_clustersWIDE.csv"))
 
   os.chdir(TOTALMASKROOT)
   maskpaths = [file for file in glob.glob("**/*.nii.gz", recursive=True)]
@@ -179,7 +187,7 @@ def part06(TOTALMASKROOT = r"F:\+DATA\ABSFULL\TOTAL ATLAS"):
   def genmasks(row, savename, maskorder=ROIORDER2):
     """Must have WORKSPACEROOT, TOTALMASKROOT and ROILIST defined."""
     os.chdir(TOTALMASKROOT)
-    display(row)
+    print(row)
     mask = nib.load(f"HTcomm_1.nii.gz")
     maskdata = np.zeros((176, 208, 176))
     for i, e in enumerate(row):
@@ -223,12 +231,13 @@ def part06(TOTALMASKROOT = r"F:\+DATA\ABSFULL\TOTAL ATLAS"):
     newmask = nib.Nifti1Image(maskdata, mask.affine)
     nib.save(newmask, os.path.join(WORKSPACEROOT, savename))
 
+
   clusterlabels = kmeans_model.labels_.copy()
-  clusterlabels[clusterlabels == 0] = np.max(clusterlabels)+1
-  genmasks(clusterlabels, f"P06cort_cluster_total.nii.gz")
-  [genmasks(clusterlabels == i, f"P06cort_cluster_{i}.nii.gz") for i in range(1,np.max(clusterlabels)+1)]
+  clusterlabels = clusterlabels + 1
+  genmasks(clusterlabels, f"P07subcort_cluster_total.nii.gz")
+  [genmasks(clusterlabels == i, f"P07subcort_cluster_{i}.nii.gz") for i in range(1,np.max(clusterlabels)+1)]
 
 
 
 if __name__ == "__main__":
-  part05()
+  part07()

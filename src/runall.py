@@ -13,6 +13,8 @@ from part02_genmaskcomms import part02
 from part03_gensubregionnifti import part03
 from part04_runjordantimecourse import part04
 from part05_TCcorrandisolation import part05
+from part06_CorticalClusters import part06
+from part07_SubcorticalClusters import part07
 
 run_full_override = False # setable flag
 DEFAULT_NO_OVERRIDE = False
@@ -22,36 +24,47 @@ DEFAULTRUN = True
 a_mask = "Hypothalamus.nii.gz"
 mdld_dataroot = 'F:/+DATA/TEAMVIEWERIN/modeled'
 mask_dir = r'F:\+DATA\ABSFULL\atlases\Pauli_MNI152-Nonlin-Asym-2009c\bilateral_rois'
-atlas_dir = "NOP"
+atlas_dir = r"F:\+DATA\ABSFULL\TOTAL ATLAS"
 matlab_dir = r"C:\Program Files\MATLAB\R2020a\bin"
 comm_mask_prefix = "HTcomm_rerun"
 timecourse_root = r"F:\+DATA\ABSFULL\timecourse_mk3"
+steps_to_run = []
 
 def main():
   # EXTRACTION OF MASK VOXELS AND CROSS CORRELATION
+  # Needs access to full run data
   if FORCESKIP and ((not exists(os.path.join('../results/', 'corrmats.npy'))) or run_full_override or DEFAULT_NO_OVERRIDE):
     part01(a_mask, mdld_dataroot, mask_dir)
 
   # COMMUNITY GENERATION FOR SPECIFIED ROI
-  if DEFAULTRUN and ((not exists(os.path.join('../results/', 'commlvl2.npy'))) or run_full_override or DEFAULT_NO_OVERRIDE):
+  if FORCESKIP and ((not exists(os.path.join('../results/', 'commlvl2.npy'))) or run_full_override or DEFAULT_NO_OVERRIDE):
     part02(matlab_dir)
 
   # MASK CREATION FOR NEWLY GENERATED COMMUNITY ASSIGNMENTS
-  if DEFAULTRUN and ((not exists(os.path.join('../results/', f"{comm_mask_prefix}_whole.nii.gz"))) or run_full_override or DEFAULT_NO_OVERRIDE):
+  if FORCESKIP and ((not exists(os.path.join('../results/', f"{comm_mask_prefix}_whole.nii.gz"))) or run_full_override or DEFAULT_NO_OVERRIDE):
     part03(a_mask, comm_mask_prefix)
 
   # RUN JORDAN'S EXRACTION SCRIPT ON THE NEW SUBREGION MASKS
+  # Needs access to full run data
   if FORCESKIP and ((not exists('../results/timecourse')) or run_full_override or DEFAULT_NO_OVERRIDE):
     part04(comm_mask_prefix)
 
   # CORRELATE AND AGGREGATE TIMECOURSE DATA
-  print((not exists(os.path.join('../results/', 'P05_fishercrosssubtotalTCcorr.npy'))))
-  if DEFAULTRUN and ((not exists(os.path.join('../results/', 'P05_fishercrosssubtotalTCcorr.npy'))) or run_full_override or DEFAULT_NO_OVERRIDE):
+  # Needs access to curated timecourse data
+  if DEFAULTRUN and ((not exists(os.path.join('../results/', 'P05_fisherTCcorr.npy'))) or run_full_override or DEFAULT_NO_OVERRIDE):
     part05(timecourse_root)
 
-  # # CORRELATE AND AGGREGATE TIMECOURSE DATA
-  # if DEFAULTRUN and ((not exists(os.path.join('../results/', 'P05_fishercrosssubtotalTCcorr.npy'))) or run_full_override or DEFAULT_NO_OVERRIDE):
-  #   part05(timecourse_root)
+  # CORTICAL CLUSTERS
+  # Needs access to full atlas dir
+  if DEFAULTRUN and (run_full_override or SINGLE_OVERRIDE_RUN):
+    part06(atlas_dir)
+
+  # SUBCORTICAL CLUSTERS
+  # Needs access to full atlas dir
+  if DEFAULTRUN and (run_full_override or SINGLE_OVERRIDE_RUN):
+    part07(atlas_dir)
+
+
 
   print("--- ANALYSIS FINISH ---")
 
