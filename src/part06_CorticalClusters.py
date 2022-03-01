@@ -29,7 +29,7 @@ from sklearn.linear_model import LinearRegression
 import sys
 from pathlib import Path
 
-def part06(TOTALMASKROOT = r"F:\+DATA\ABSFULL\TOTAL ATLAS"):
+def part06(TOTALMASKROOT = r"F:\+DATA\ABSFULL\TOTAL ATLAS", k_clust=None, resample_space=r"F:\+DATA\DOCKEROUT\MNI152_T1_1mm_brain.nii.gz"):
   """
   Extracts signal for a given analysis mask and calcuates a total correlation tensor for a set of runs. Saves the result to the results directory.
 
@@ -55,6 +55,9 @@ def part06(TOTALMASKROOT = r"F:\+DATA\ABSFULL\TOTAL ATLAS"):
 
   """
   print("--Running part 06--")
+
+  resample_threshold = 0.2
+
   # Getting File Paths  -----------------------------------------------------------------
   # OS Paths
   cwd = Path(os.getcwd())
@@ -101,8 +104,10 @@ def part06(TOTALMASKROOT = r"F:\+DATA\ABSFULL\TOTAL ATLAS"):
   print(kneedle.knee)
   print(kneedle.elbow)
     
+  if k_clust is None:
+    k_clust = kneedle.knee
 
-  kmeans_model = KMeans(n_clusters=kneedle.knee, random_state=1).fit(meancorr_moved)
+  kmeans_model = KMeans(n_clusters=k_clust, random_state=1).fit(meancorr_moved)
   print(kmeans_model.labels_)
   for i in range(max(kmeans_model.labels_)+1):
     print(f"{i}: {sum(kmeans_model.labels_ == i)}")
@@ -147,8 +152,9 @@ def part06(TOTALMASKROOT = r"F:\+DATA\ABSFULL\TOTAL ATLAS"):
     """Must have WORKSPACEROOT, TOTALMASKROOT and ROILIST defined."""
     os.chdir(TOTALMASKROOT)
     print(row)
-    mask = nib.load(f"HTcomm_1.nii.gz")
-    maskdata = np.zeros((176, 208, 176))
+    mask = nib.load(resample_space)
+    # maskdata = np.zeros((176, 208, 176))
+    maskdata = np.zeros(mask.dataobj.shape)
     for i, e in enumerate(row):
       looproi = f"{maskorder[i]}"
       if looproi[-6:] != 'nii.gz':
@@ -161,22 +167,26 @@ def part06(TOTALMASKROOT = r"F:\+DATA\ABSFULL\TOTAL ATLAS"):
       print(looproi, end="")
       try:
         roimask = nib.load(looproi)
-        print(" - loaded")
+        print(" - loaded", end="")
         if looproi[2] == '.' or looproi[0] == 'W' or looproi[1:3] == 'HI': 
           roiresampled = resample_img(roimask, target_shape=mask.shape[:3], target_affine=mask.affine, 
             interpolation='nearest') # use linear neighbor interpolation for probabilistic images
-          roiresampled = math_img('img > 0.5', img=roiresampled)
+          print(" - resampled")
+          roiresampled = math_img(f'img > 0.2', img=roiresampled)
   #         view = plotting.view_img(roiresampled, threshold=0)
           roidata = roiresampled.get_fdata()
         elif looproi[1] == '_':      
           roiresampled = resample_img(roimask, target_shape=mask.shape[:3], target_affine=mask.affine, 
             interpolation='linear') # use linear neighbor interpolation for probabilistic images
-          roiresampled = math_img('img > 0.5', img=roiresampled)
+          print(" - resampled")
+          roiresampled = math_img(f'img > 0.2', img=roiresampled)
   #         view = plotting.view_img(roiresampled, threshold=0)
           roidata = roiresampled.get_fdata()
         else:
   #         print(roimask)
+          print("")
           roidata = roimask.get_fdata()
+        print("extracted roidata")
         roidata_weighted = e*roidata
   #       display(view)
   #       maskdata[maskdata==0] = roidata_weighted[maskdata==0]
@@ -193,6 +203,10 @@ def part06(TOTALMASKROOT = r"F:\+DATA\ABSFULL\TOTAL ATLAS"):
 
   clusterlabels = kmeans_model.labels_.copy()
   clusterlabels = clusterlabels + 1
+  print(clusterlabels)
+  with open(os.path.join(WORKSPACEROOT, "P06_clusterlabels.npy"), 'wb') as f:
+    np.save(f, clusterlabels)
+  print("P06: Saved Labels")
   genmasks(clusterlabels, f"P06cort_cluster_total.nii.gz")
   [genmasks(clusterlabels == i, f"P06cort_cluster_{i}.nii.gz") for i in range(1,np.max(clusterlabels)+1)]
 

@@ -175,29 +175,29 @@ def extract_timecourse(subj, gm_file, func_file, out_dir, roi_path, out_label, c
 
     print('####\ndone with %s \n####' % subj)
 
-import glob, os
-subj = os.environ['SUBJ']
-root = '/scratch/'+os.environ['USER']+'/'+os.environ['SUBJ']+'/'+os.environ['PROJNAME']
-gm_file = glob.glob(os.path.join(root, 'gm/*.nii.gz'))[0]
-func_file = os.path.join(root, 'func/res4d.nii.gz')
-# roi_path = os.path.join(root, 'roi/*')
-out_dir = os.path.join(root, 'output')
-# out_label = 'wm_GlasserPauli'
+# import glob, os
+# subj = os.environ['SUBJ']
+# root = '/scratch/'+os.environ['USER']+'/'+os.environ['SUBJ']+'/'+os.environ['PROJNAME']
+# gm_file = glob.glob(os.path.join(root, 'gm/*.nii.gz'))[0]
+# func_file = os.path.join(root, 'func/res4d.nii.gz')
+# # roi_path = os.path.join(root, 'roi/*')
+# out_dir = os.path.join(root, 'output')
+# # out_label = 'wm_GlasserPauli'
 
-roi_groups = [
-    # ['rest_Glasser_L', os.path.join(root, 'roi1/*')],
-    # ['rest_Glasser_R', os.path.join(root, 'roi2/*')],
-    # ['rest_PauliPAG', os.path.join(root, 'roi3/*')],
-    # ['rest_WAGERbrainstem', os.path.join(root, 'roi4/*')],
-    # ['rest_WAGERcerebellum', os.path.join(root, 'roi5/*')],
-    # ['rest_WAGERsubcortex', os.path.join(root, 'roi6/*')]
-    # ['rest_Yuta_hippocampus', os.path.join(root, 'roi7/*')]
-    ['rest_Ajay_AP_hippocampus', os.path.join(root, 'roi8/*')]
-    ]
-subj = subj[0:7]
-for roi_g in roi_groups:
-    out_label = roi_g[0]
-    roi_path = roi_g[1]
-    extract_timecourse(subj, gm_file, func_file, out_dir,
-                          roi_path, out_label,
-                          gm_method='between', gm_thresh=[.2, 1.])
+# roi_groups = [
+#     # ['rest_Glasser_L', os.path.join(root, 'roi1/*')],
+#     # ['rest_Glasser_R', os.path.join(root, 'roi2/*')],
+#     # ['rest_PauliPAG', os.path.join(root, 'roi3/*')],
+#     # ['rest_WAGERbrainstem', os.path.join(root, 'roi4/*')],
+#     # ['rest_WAGERcerebellum', os.path.join(root, 'roi5/*')],
+#     # ['rest_WAGERsubcortex', os.path.join(root, 'roi6/*')]
+#     # ['rest_Yuta_hippocampus', os.path.join(root, 'roi7/*')]
+#     ['rest_Ajay_AP_hippocampus', os.path.join(root, 'roi8/*')]
+#     ]
+# subj = subj[0:7]
+# for roi_g in roi_groups:
+#     out_label = roi_g[0]
+#     roi_path = roi_g[1]
+#     extract_timecourse(subj, gm_file, func_file, out_dir,
+#                           roi_path, out_label,
+#                           gm_method='between', gm_thresh=[.2, 1.])

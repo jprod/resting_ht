@@ -55,6 +55,8 @@ def part07(TOTALMASKROOT = r"F:\+DATA\ABSFULL\TOTAL ATLAS"):
 
   """
   print("--Running part 07--")
+
+  resample_threshold = 0.5
   # Getting File Paths  -----------------------------------------------------------------
   # OS Paths
   cwd = Path(os.getcwd())
@@ -206,13 +208,13 @@ def part07(TOTALMASKROOT = r"F:\+DATA\ABSFULL\TOTAL ATLAS"):
         if looproi[2] == '.' or looproi[0] == 'W' or looproi[1:3] == 'HI': 
           roiresampled = resample_img(roimask, target_shape=mask.shape[:3], target_affine=mask.affine, 
             interpolation='nearest') # use linear neighbor interpolation for probabilistic images
-          roiresampled = math_img('img > 0.5', img=roiresampled)
+          roiresampled = math_img(f'img > {resample_threshold}', img=roiresampled)
   #         view = plotting.view_img(roiresampled, threshold=0)
           roidata = roiresampled.get_fdata()
         elif looproi[1] == '_':      
           roiresampled = resample_img(roimask, target_shape=mask.shape[:3], target_affine=mask.affine, 
             interpolation='linear') # use linear neighbor interpolation for probabilistic images
-          roiresampled = math_img('img > 0.5', img=roiresampled)
+          roiresampled = math_img(f'img > {resample_threshold}', img=roiresampled)
   #         view = plotting.view_img(roiresampled, threshold=0)
           roidata = roiresampled.get_fdata()
         else:
@@ -234,6 +236,10 @@ def part07(TOTALMASKROOT = r"F:\+DATA\ABSFULL\TOTAL ATLAS"):
 
   clusterlabels = kmeans_model.labels_.copy()
   clusterlabels = clusterlabels + 1
+  print(clusterlabels)
+  with open(os.path.join(WORKSPACEROOT, "P07_clusterlabels.npy"), 'wb') as f:
+    np.save(f, clusterlabels)
+  print("P07: Saved Labels")
   genmasks(clusterlabels, f"P07subcort_cluster_total.nii.gz")
   [genmasks(clusterlabels == i, f"P07subcort_cluster_{i}.nii.gz") for i in range(1,np.max(clusterlabels)+1)]
 

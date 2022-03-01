@@ -53,17 +53,17 @@ def main():
 
   # CORRELATE AND AGGREGATE TIMECOURSE DATA
   # Needs access to curated timecourse data
-  if DEFAULTRUN and ((not exists(os.path.join('../results/', 'P05_fisherTCcorr.npy'))) or run_full_override or DEFAULT_NO_OVERRIDE):
+  if FORCESKIP and ((not exists(os.path.join('../results/', 'P05_fisherTCcorr.npy'))) or run_full_override or DEFAULT_NO_OVERRIDE):
     part05(timecourse_root)
 
   # CORTICAL CLUSTERS
   # Needs access to full atlas dir
-  if DEFAULTRUN and (run_full_override or SINGLE_OVERRIDE_RUN):
-    part06(atlas_dir)
+  if FORCESKIP and (run_full_override or SINGLE_OVERRIDE_RUN):
+    part06(atlas_dir, 4)
 
   # SUBCORTICAL CLUSTERS
   # Needs access to full atlas dir
-  if DEFAULTRUN and (run_full_override or SINGLE_OVERRIDE_RUN):
+  if FORCESKIP and (run_full_override or SINGLE_OVERRIDE_RUN):
     part07(atlas_dir)
 
 

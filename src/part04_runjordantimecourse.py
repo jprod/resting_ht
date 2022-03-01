@@ -20,7 +20,9 @@ from functools import reduce
 import sys
 from pathlib import Path
 
-def part04(comm_mask_prefix = "HTcomm_rerun"):
+from lib.extract_roi_from_list import extract_timecourse
+
+def part04(comm_mask_prefix = "HTcomm_rerun", roi_loc = None, mdld_dataroot = 'F:/+DATA/TEAMVIEWERIN/modeled', gm_name="threshac1.nii.gz"):
   """
   Extracts signal for a given analysis mask and calcuates a total correlation tensor for a set of runs. Saves the result to the results directory.
 
@@ -45,11 +47,20 @@ def part04(comm_mask_prefix = "HTcomm_rerun"):
   parent = cwd.parent.absolute()
   WORKSPACEROOT = os.path.join(parent, 'results')
 
+  if roi_loc is None:
+    roi_loc = WORKSPACEROOT
+
   # Make Directory for timecourse output?
   tcpath = os.path.join(WORKSPACEROOT, 'timecourse')
-  tc_out = os.mkdir(tcpath)
-  raise ValueError("Jordan's script not specified")
+  os.mkdir(tcpath)
 
+  os.chdir(mdld_dataroot)
+  resid = [file for file in glob.glob("**/res4d.nii.gz", recursive=True)]
+
+  for path in resid:
+    extract_timecourse(path[20:27], path[:-12]+gm_name, path, tcpath, roi_loc, out_label)
 
 if __name__ == "__main__":
-  part04()
+  prefix = int(sys.argv[1])
+  roi_loc = int(sys.argv[2])
+  part04(prefix, roi_loc)
