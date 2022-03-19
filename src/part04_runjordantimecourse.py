@@ -61,6 +61,6 @@ def part04(comm_mask_prefix = "HTcomm_rerun", roi_loc = None, mdld_dataroot = 'F
     extract_timecourse(path[20:27], path[:-12]+gm_name, path, tcpath, roi_loc, out_label)
 
 if __name__ == "__main__":
-  prefix = int(sys.argv[1])
-  roi_loc = int(sys.argv[2])
+  prefix = str(sys.argv[1])
+  roi_loc = str(sys.argv[2])
   part04(prefix, roi_loc)
