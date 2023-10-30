@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 """
-Module extracts signal for a given analysis mask and calcuates a total correlation tensor
-(sub x mask_vox x mask_vox) for a set of runs
+Clusters correlation matrix and produces clusters masks based on atlas rois for cortical rois 
 """
 
 # Setup -------------------------------------------------------------------------------
@@ -29,25 +28,28 @@ from sklearn.linear_model import LinearRegression
 import sys
 from pathlib import Path
 
-def part06(TOTALMASKROOT = r"F:\+DATA\ABSFULL\TOTAL ATLAS", k_clust=None, resample_space=r"F:\+DATA\DOCKEROUT\MNI152_T1_1mm_brain.nii.gz"):
+def part06(TOTALMASKROOT = r"F:\+DATA\ABSFULL\TOTAL ATLAS", k_clust=None, resample_space=r"F:\+DATA\DOCKEROUT\MNI152_T1_1mm_brain.nii.gz", msk_prefix = "HTcomm_rerun"):
   """
-  Extracts signal for a given analysis mask and calcuates a total correlation tensor for a set of runs. Saves the result to the results directory.
+  Clusters correlation matrix and produces clusters masks based on atlas rois for cortical rois.
 
   Parameters
   ----------
-  a_mask : str
-    Name of the mask to base this analysis off of. Orig. Hypothalums.nii.gz.
-  mdld_dataroot : str
-    Upper directory for the total resting niftis
-  mask_dir : str
-    Directory where all of the masks are stored (atlas directory).
+  TOTALMASKROOT : str
+    Directory of the atlas
+  k_clust : int
+    Number of clusters for k means
+  resample_space : str
+    Full path for a nifti in the desired resample space
+  msk_prefix : str
+    Prefix for current generated HT masks as part of cortical roi atlas
 
   Returns
   -------
   None (Saves output to "results" directory)
   Output includes 
-    corrmats.npy - sub x mask_vox x mask_vox tensor for correlations between voxels within mask
-    sublist.npy - subject labels for the first axis of the corrmats.npy tensor 
+    P06_clusterlabels.npy - roi array for cluster assignments
+    P06cort_cluster_total.nii.gz - 4d nifti of combined mask of rois per each clusters asignment
+    P06cort_cluster_{i}.nii.gz - 3d nifti mask of combined rois for each cluster
 
   Notes
   -----
@@ -74,16 +76,21 @@ def part06(TOTALMASKROOT = r"F:\+DATA\ABSFULL\TOTAL ATLAS", k_clust=None, resamp
   # regex for cortical
   import re
   r = re.compile('[lr]h\.[RL]_.*')
-  # TODO: Edit so it uses non HT indicies
-  HTindicies = np.where(np.isin(ROIORDER, ["HTcomm_1", "HTcomm_2", "HTcomm_3", "HTcomm_4"]))[0]
   cortex = np.vectorize(lambda name: bool(re.match(r, name)))(ROIORDER)
+  # TODO: Edit so it uses non HT indicies
+
+  r2 = re.compile(f'.*{msk_prefix}.*')
+  TargetRoiIndices = np.vectorize(lambda name: bool(re.match(r2, name)))(ROIORDER)
+  print(TargetRoiIndices)
+  print(f'.*{msk_prefix}.*')
+  # TargetRoiIndices = np.where(np.isin(ROIORDER, ["HTcomm_1", "HTcomm_2", "HTcomm_3", "HTcomm_4"]))[0]
 
   print(cortex)
   print(cortex.shape)
 
-  meancorr = meancorr_in[HTindicies,:]
+  meancorr = meancorr_in[TargetRoiIndices,:]
   meancorr = meancorr[:,cortex]
-  corr = corr_in[:,HTindicies,:]
+  corr = corr_in[:,TargetRoiIndices,:]
   corr = corr[:,:,cortex]
   ROIORDER2 = ROIORDER[cortex]
 

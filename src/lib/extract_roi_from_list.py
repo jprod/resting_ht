@@ -1,4 +1,12 @@
-def extract_timecourse(subj, gm_file, func_file, out_dir, roi_path, out_label, check_output=None, dilate_roi=None, gm_method='scale', gm_thresh=None, export_nii=None):
+import os, glob, time
+import numpy as np
+import pandas as pd
+import nibabel as nib
+from nilearn.image import resample_img
+from scipy.ndimage.morphology import binary_dilation
+from pathlib import Path
+
+def extract_timecourse(subj, gm_file, func_file, out_dir, roi_path, out_label, check_output=None, dilate_roi=None, gm_method='scale', gm_thresh=None, export_nii=None, load_full=True):
     '''
     Extract ROI timecourse from functional data, given a list of nifti files.
 
@@ -31,12 +39,12 @@ def extract_timecourse(subj, gm_file, func_file, out_dir, roi_path, out_label, c
         (e.g. [.2, 1.] to grab all gm voxels > .2)
     export_nii [default = None] = set to True to output a .nii file with ROI averages.
     '''
-    import os, glob, time
-    import numpy as np
-    import pandas as pd
-    import nibabel as nib
-    from nilearn.image import resample_img
-    from scipy.ndimage.morphology import binary_dilation
+    if os.name == 'nt':
+        if (Path(os.path.join(out_dir,os.path.join(out_dir, out_label+'_'+subj+'_'+func_file.split('\\')[-1].split('.nii.gz')[0]+'.csv'))).is_file()):
+            return None
+    else:
+        if (Path(os.path.join(out_dir,os.path.join(out_dir, out_label+'_'+subj+'_'+func_file.split('/')[-1].split('.nii.gz')[0]+'.csv'))).is_file()):
+            return None
 
     print('subj: ', subj)
     print('gm_file: ', gm_file)
@@ -108,31 +116,42 @@ def extract_timecourse(subj, gm_file, func_file, out_dir, roi_path, out_label, c
         func_dat = func_img.get_fdata()
         func_dat = func_dat[...,None]
 
+    if load_full:
+        func_loaded = func_img.get_fdata()
+    else:
+        func_loaded = None
+
     for TR in range(0, TR_len):
         print('working on functional slice:', TR)
         if len(func_img.shape)==3: # trigger on 3d images.
             func_dat = func_img.get_fdata()
+        elif load_full:
+            func_dat = func_loaded[..., TR]
         else:
             func_dat = func_img.dataobj[..., TR] # grab one slice at a time.
 
-        print('apply GM mask to functional data.')
+        # print('apply GM mask to functional data.')
         if gm_method == 'scale':
-            func_dat = func_dat*fit_gm.get_fdata()
+            func_dat = func_dat*fit_gm.get_fdata()[:,:,:,0]
         elif gm_method == 'between':
             assert isinstance(gm_thresh, list), 'for gm_method=between, use a list of two float cutoff points for gm_thresh'
-            func_dat = func_dat*np.where((fit_gm.get_fdata() > gm_thresh[0]) & (fit_gm.get_fdata() <= gm_thresh[1]), 1, np.nan)
+            func_dat = func_dat*np.where((fit_gm.get_fdata()[:,:,:,0] > gm_thresh[0]) & (fit_gm.get_fdata()[:,:,:,0] <= gm_thresh[1]), 1, np.nan)
         else:
             raise('Use either scale or between for gm_method')
 
-        print('extract all rois')
+        # print('extract all rois')
         TR_dat = roi_all*func_dat[...,None] # multiplied to handle probabalistic masks.
         TR_dat = TR_dat.reshape(np.prod(TR_dat.shape[0:-1]), -1)
 
-        print('saving TR average')
+        # print('saving TR average')
         if TR == 0:
-            TR_mean = np.nanmean(TR_dat, axis=0)
-        else:
-            TR_mean = np.vstack((TR_mean, np.nanmean(TR_dat, axis=0))) # ROI x TRs
+            TR_mean = np.empty((TR_len, roi_all.shape[-1]))
+        #     TR_mean = np.nanmean(TR_dat, axis=0)
+        # else:
+        #     TR_mean = np.vstack((TR_mean, np.nanmean(TR_dat, axis=0))) # ROI x TRs
+        TR_mean[TR,:] = np.nanmean(TR_dat, axis=0) # ROI x TRs
+
+    del func_loaded
 
     # export data to .csv
     pd_out = pd.DataFrame({'subj':np.repeat(subj, len(glob.glob(roi_path))),
@@ -147,9 +166,14 @@ def extract_timecourse(subj, gm_file, func_file, out_dir, roi_path, out_label, c
         pd_out = pd_out.join(pd.DataFrame(TR_mean.transpose()).add_suffix('_mean'))
     else:
         pd_out = pd_out.join(pd.DataFrame(TR_mean).add_suffix('_mean'))
-    pd_out.to_csv(os.path.join(out_dir,
-                               os.path.join(out_dir, out_label+'_'+subj+'_'+func_file.split('/')[-1].split('.nii.gz')[0]+'.csv')),
-                  index=False, header=True)
+    if os.name == 'nt':
+        pd_out.to_csv(os.path.join(out_dir,
+                                   os.path.join(out_dir, out_label+'_'+subj+'_'+func_file.split('\\')[-1].split('.nii.gz')[0]+'.csv')),
+                      index=False, header=True)
+    else:
+        pd_out.to_csv(os.path.join(out_dir,
+                                   os.path.join(out_dir, out_label+'_'+subj+'_'+func_file.split('/')[-1].split('.nii.gz')[0]+'.csv')),
+                      index=False, header=True)
 
     if export_nii: # export nifti
         nii_mean = np.zeros(nib.load(func_file).shape[0:3])

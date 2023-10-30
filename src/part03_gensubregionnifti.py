@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Module extracts signal for a given analysis mask and calcuates a total correlation tensor
+Extracts signal for a given analysis mask and calcuates a total correlation tensor
 (sub x mask_vox x mask_vox) for a set of runs
 """
 

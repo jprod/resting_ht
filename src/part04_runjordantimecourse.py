@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 """
-Module extracts signal for a given analysis mask and calcuates a total correlation tensor
-(sub x mask_vox x mask_vox) for a set of runs
+Extracts time course files form HT community masks
 """
 
 # Setup -------------------------------------------------------------------------------
@@ -22,12 +21,20 @@ from pathlib import Path
 
 from lib.extract_roi_from_list import extract_timecourse
 
-def part04(comm_mask_prefix = "HTcomm_rerun", roi_loc = None, mdld_dataroot = 'F:/+DATA/TEAMVIEWERIN/modeled', gm_name="threshac1.nii.gz"):
+def part04(comm_mask_prefix = "HTcomm_rerun", roi_loc = None, mdld_dataroot = r'G:\7T_resting_state\modeled', gm_name="threshac1.nii.gz"):
   """
-  Extracts signal for a given analysis mask and calcuates a total correlation tensor for a set of runs. Saves the result to the results directory.
+  Extracts time course files form HT community masksy.
 
   Parameters
   ----------
+  comm_mask_prefix : str
+    Prefix for the masks used in 
+  roi_loc : str
+    A glob path to grab all ROI files
+  mdld_dataroot : str
+    A directory for where all the modeled date is housed one layer deep
+  gm_name : str
+    A full path to the GM mask
 
   Returns
   -------
@@ -52,13 +59,20 @@ def part04(comm_mask_prefix = "HTcomm_rerun", roi_loc = None, mdld_dataroot = 'F
 
   # Make Directory for timecourse output?
   tcpath = os.path.join(WORKSPACEROOT, 'timecourse')
-  os.mkdir(tcpath)
+  if not Path(tcpath).is_dir():
+    print(f"Created timecourse")
+    os.mkdir(tcpath)
 
   os.chdir(mdld_dataroot)
   resid = [file for file in glob.glob("**/res4d.nii.gz", recursive=True)]
 
+
   for path in resid:
-    extract_timecourse(path[20:27], path[:-12]+gm_name, path, tcpath, roi_loc, out_label)
+    tcpath2 = os.path.join(tcpath, f'{path[14:19]}_timecourse')
+    if not Path(tcpath2).is_dir():
+      print(f"Created timecourse\\{path[14:19]}_timecourse")
+      os.mkdir(tcpath2)
+    extract_timecourse(path[20:27], path[:-12]+gm_name, path, tcpath2, os.path.join(roi_loc, '*.nii.gz'), comm_mask_prefix, gm_method='between', gm_thresh=[.2, 1.])
 
 if __name__ == "__main__":
   prefix = str(sys.argv[1])

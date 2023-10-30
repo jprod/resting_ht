@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 """
-Module extracts signal for a given analysis mask and calcuates a total correlation tensor
-(sub x mask_vox x mask_vox) for a set of runs
+Correlates fisher transformed timecourses for roi data
 """
 
 # Setup -------------------------------------------------------------------------------
@@ -29,25 +28,23 @@ from sklearn.linear_model import LinearRegression
 import sys
 from pathlib import Path
 
-def part05(timecourse_root = r"F:\+DATA\ABSFULL\timecourse_mk3"):
+def part05(timecourse_root = r"F:\+DATA\ABSFULL\timecourse_mk4", msk_prefix = r"rest_HTABS"):
   """
-  Extracts signal for a given analysis mask and calcuates a total correlation tensor for a set of runs. Saves the result to the results directory.
+  Correlates fisher transformed timecourses for roi data.
 
   Parameters
   ----------
-  a_mask : str
-    Name of the mask to base this analysis off of. Orig. Hypothalums.nii.gz.
-  mdld_dataroot : str
-    Upper directory for the total resting niftis
-  mask_dir : str
-    Directory where all of the masks are stored (atlas directory).
+  timecourse_root : str
+    Housing directory for timecourse files
+  msk_prefix : str
+    Prefix for hypothalamus mask
 
   Returns
   -------
   None (Saves output to "results" directory)
   Output includes 
-    corrmats.npy - sub x mask_vox x mask_vox tensor for correlations between voxels within mask
-    sublist.npy - subject labels for the first axis of the corrmats.npy tensor 
+    P05_fisherTCcorr.npy - sub x roi x roi tensor for correlations between timecourses
+    P05_fishercrosssubtotalTCcorr.npy - roi x roi matrix meaned over sub
 
   Notes
   -----
@@ -66,6 +63,8 @@ def part05(timecourse_root = r"F:\+DATA\ABSFULL\timecourse_mk3"):
   # print(tcpaths)
 
   header = ["subj", "tag", "roi"] + [f"{i}_mean" for i in range(0,256)]
+
+  maxlen_exp = 609
 
   # Extraction and Cleaning
   # Basic extraction fns for tc data --------------------
@@ -103,20 +102,39 @@ def part05(timecourse_root = r"F:\+DATA\ABSFULL\timecourse_mk3"):
     else:
       return fulltable
     
-  def getMetaCols(sub):
+  # def getMetaCols(sub): [getMetaCols(sub), getRunTable(sub, 1), getRunTable(sub, 2), getRunTable(sub, 3)]
+  #   listdf = [getRunTable(sub, 1, False),getRunTable(sub, 2, False),getRunTable(sub, 3, False)]
+  #   print(".",end="")
+  #   fulltab = pd.concat([df[["tag","roi"]] for df in listdf if df is not None], axis=1)
+  #   if len(fulltab["roi"].shape) == 2:
+  #     valid_check = fulltab["roi"].isin(fulltab["roi"].iloc[:, 1]).all(1).all()
+  #     if not valid_check:
+  #        display(fulltab)
+  #        raise ValueError(f"{sub}: Cols must have the same order")
+  #   return fulltab.iloc[:, 0:2]
+
+  def getFullTable(sub):
     listdf = [getRunTable(sub, 1, False),getRunTable(sub, 2, False),getRunTable(sub, 3, False)]
     print(".",end="")
     fulltab = pd.concat([df[["tag","roi"]] for df in listdf if df is not None], axis=1)
     if len(fulltab["roi"].shape) == 2:
       valid_check = fulltab["roi"].isin(fulltab["roi"].iloc[:, 1]).all(1).all()
       if not valid_check:
-         display(fulltab)
-         raise ValueError(f"{sub}: Cols must have the same order")
-    return fulltab.iloc[:, 0:2]
+        print(fulltab)
+        maxlen = max([df.shape[0] for df in listdf if df is not None])
+        if maxlen != maxlen_exp:
+          raise ValueError(f"{sub}: maxlen {maxlen} is not {maxlen_exp}")
+        listdf = [df for df in listdf if df.shape[0] == maxlen]
+        fulltab = pd.concat([df[["tag","roi"]] for df in listdf if df is not None], axis=1)
+        # raise ValueError(f"{sub}: Cols must have the same order")
+    elif (fulltab["roi"].shape[0] != maxlen_exp):
+      return None
+    return pd.concat([fulltab.iloc[:, 0:2]] + [df.drop(["tag","roi"], axis=1) for df in listdf if df is not None], axis=1, join="inner")
 
   subjset = set([p[-17:-10] for p in tcpaths]) # Where in the path the subject is stated
   print("P05: Loading All Runs...")
-  allruns = [(sub, pd.concat([getMetaCols(sub), getRunTable(sub, 1), getRunTable(sub, 2), getRunTable(sub, 3)], axis=1, join="inner")) for sub in subjset]
+  allruns = [(sub, getFullTable(sub)) for sub in subjset]
+  allruns = [(sub, run) for sub, run in allruns if run is not None]
   print("P05: Loaded All Runs")
   ROILIST = allruns[0][1]['roi']
   ROINP = ROILIST.to_numpy().astype('U')
@@ -124,8 +142,9 @@ def part05(timecourse_root = r"F:\+DATA\ABSFULL\timecourse_mk3"):
     np.save(f, ROINP)
 
   # Correlation
-  # TODO: only works for HT "rest_HTABS"
-  allcorr = [(subj[1].drop(["tag", "roi"], axis=1).transpose().corr(), subj[1][subj[1]["tag"] == "rest_HTABS"].index, subj[0]) for subj in allruns] 
+  print("P05: Correlation")
+  # TODO: only works for set mask prefixes as a heuristic check for index order
+  allcorr = [(subj[1].drop(["tag", "roi"], axis=1).transpose().corr(), subj[1][subj[1]["tag"] == msk_prefix].index, subj[0]) for subj in allruns] 
   corrvalid = [corr[0] for corr in allcorr if (corr[1] == allcorr[0][1]).all()] # valid if the indices are the same
   # Checking if any correlation tables are malformed
   for corr in allcorr:
@@ -141,6 +160,7 @@ def part05(timecourse_root = r"F:\+DATA\ABSFULL\timecourse_mk3"):
       np.save(f, fishercorrnp)
 
   # Mean
+  print("P05: Mean")
   meancorr = np.nanmean(fishercorrnp, axis=0)
   with open(os.path.join(WORKSPACEROOT, "P05_fishercrosssubtotalTCcorr.npy"), 'wb') as f:
     np.save(f, meancorr)

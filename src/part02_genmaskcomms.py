@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Module flattens corrmats.npy tensor into a vox x vox matrix.
+Flattens corrmats.npy tensor into a vox x vox matrix.
 """
 
 # Setup -------------------------------------------------------------------------------
@@ -44,6 +44,7 @@ def part02(matlab_dir = r"C:\Program Files\MATLAB\R2020a\bin", ):
   cwd = Path(os.getcwd())
   parent = cwd.parent.absolute()
   WORKSPACEROOT = os.path.join(parent, 'results')
+  NUMOFSUSPECTEDCOMMS = 2
 
   # Collapsing Tensor  -----------------------------------------------------------------
   if (not exists(os.path.join(WORKSPACEROOT, 'avgcorrvoxfisher.npy'))):

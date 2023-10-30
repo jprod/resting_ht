@@ -28,8 +28,8 @@ mask_dir = r'F:\+DATA\ABSFULL\atlases\Pauli_MNI152-Nonlin-Asym-2009c\bilateral_r
 # mask_dir = r'/Users/PAG/Desktop/RestingHT_Workspace/bilateral_rois'
 atlas_dir = r"F:\+DATA\ABSFULL\TOTAL ATLAS"
 matlab_dir = r"C:\Program Files\MATLAB\R2020a\bin"
-comm_mask_prefix = "HTcomm_rerun"
-timecourse_root = r"F:\+DATA\ABSFULL\timecourse_mk3"
+comm_mask_prefix = "PauliAmy_"
+timecourse_root = r"F:\+DATA\ABSFULL\timecourse_mk4"
 steps_to_run = []
 
 def main():
@@ -39,11 +39,11 @@ def main():
     part01(a_mask, mdld_dataroot, mask_dir)
 
   # COMMUNITY GENERATION FOR SPECIFIED ROI
-  if FORCESKIP and ((not exists(os.path.join('../results/', 'commlvl2.npy'))) or run_full_override or DEFAULT_NO_OVERRIDE):
+  if DEFAULTRUN and ((not exists(os.path.join('../results/', 'commlvl2.npy'))) or run_full_override or DEFAULT_NO_OVERRIDE):
     part02(matlab_dir)
 
   # MASK CREATION FOR NEWLY GENERATED COMMUNITY ASSIGNMENTS
-  if FORCESKIP and ((not exists(os.path.join('../results/', f"{comm_mask_prefix}_whole.nii.gz"))) or run_full_override or DEFAULT_NO_OVERRIDE):
+  if DEFAULTRUN and ((not exists(os.path.join('../results/', f"{comm_mask_prefix}_whole.nii.gz"))) or run_full_override or DEFAULT_NO_OVERRIDE):
     part03(a_mask, comm_mask_prefix)
 
   # RUN JORDAN'S EXRACTION SCRIPT ON THE NEW SUBREGION MASKS
@@ -59,7 +59,7 @@ def main():
   # CORTICAL CLUSTERS
   # Needs access to full atlas dir
   if FORCESKIP and (run_full_override or SINGLE_OVERRIDE_RUN):
-    part06(atlas_dir, 4)
+    part06(atlas_dir, 4, msk_prefix="iAmyNuc")
 
   # SUBCORTICAL CLUSTERS
   # Needs access to full atlas dir

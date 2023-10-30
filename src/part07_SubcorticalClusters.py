@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 """
-Module extracts signal for a given analysis mask and calcuates a total correlation tensor
-(sub x mask_vox x mask_vox) for a set of runs
+Clusters correlation matrix and produces clusters masks based on atlas rois for subcortical rois.
 """
 
 # Setup -------------------------------------------------------------------------------
@@ -31,23 +30,20 @@ from pathlib import Path
 
 def part07(TOTALMASKROOT = r"F:\+DATA\ABSFULL\TOTAL ATLAS"):
   """
-  Extracts signal for a given analysis mask and calcuates a total correlation tensor for a set of runs. Saves the result to the results directory.
+  Clusters correlation matrix and produces clusters masks based on atlas rois for subcortical rois.
 
   Parameters
   ----------
-  a_mask : str
-    Name of the mask to base this analysis off of. Orig. Hypothalums.nii.gz.
-  mdld_dataroot : str
-    Upper directory for the total resting niftis
-  mask_dir : str
-    Directory where all of the masks are stored (atlas directory).
+  TOTALMASKROOT : str
+    Directory of the atlas
 
   Returns
   -------
   None (Saves output to "results" directory)
   Output includes 
-    corrmats.npy - sub x mask_vox x mask_vox tensor for correlations between voxels within mask
-    sublist.npy - subject labels for the first axis of the corrmats.npy tensor 
+    P07_clusterlabels.npy - roi array for cluster assignments
+    P07subcort_cluster_total.nii.gz - 4d nifti of combined mask of rois per each clusters asignment
+    P07subcort_cluster_{i}.nii.gz - 3d nifti mask of combined rois for each cluster
 
   Notes
   -----
